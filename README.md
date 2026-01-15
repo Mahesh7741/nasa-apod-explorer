@@ -233,7 +233,7 @@ Configuration file containing application settings and NASA API key.
 
 ```properties
 spring.application.name=nasa
-nasa.api.key=ZyXQQSaHEchGyDuy6XpeHfPmEejxRsdJU40gfIgL
+nasa.api.key=XXXXXXXXX
 ```
 
 ---
