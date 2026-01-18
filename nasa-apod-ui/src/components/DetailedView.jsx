@@ -1,4 +1,29 @@
-export default function DetailedView({ image, onClose }) {
+export default function DetailedView({ image, onClose, isFavorite, onToggleFavorite }) {
+  const downloadImage = async () => {
+    if (!image || image.media_type !== 'image') return
+    try {
+      const response = await fetch(image.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `apod-${image.date}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Download failed:', err)
+    }
+  }
+
+  const copyToClipboard = () => {
+    if (!image) return
+    const text = `${image.title}\n\n${image.explanation}\n\nDate: ${image.date}${image.copyright ? `\nCopyright: ${image.copyright}` : ''}`
+    navigator.clipboard.writeText(text)
+    alert('✓ Copied to clipboard!')
+  }
+
   return (
     <div className="detailed-view">
       <button className="close-btn" onClick={onClose}>✕</button>
@@ -19,8 +44,17 @@ export default function DetailedView({ image, onClose }) {
       )}
 
       <div className="detail-content">
-        {/* Title */}
-        <h1 className="detail-title">{image.title}</h1>
+        {/* Title with Favorite */}
+        <div className="title-section">
+          <h1 className="detail-title">{image.title}</h1>
+          <button 
+            className="favorite-btn favorite-btn-large" 
+            onClick={onToggleFavorite}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
+        </div>
 
         {/* Metadata */}
         <div className="detail-meta">
@@ -59,13 +93,21 @@ export default function DetailedView({ image, onClose }) {
         {/* Actions */}
         <div className="apod-actions">
           <a href={image.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
-            View Original
+            📥 Open Original
           </a>
+          {image.media_type === 'image' && (
+            <button className="btn-secondary" onClick={downloadImage}>
+              💾 Download
+            </button>
+          )}
+          <button className="btn-secondary" onClick={copyToClipboard}>
+            📋 Copy Info
+          </button>
           <a href="https://apod.nasa.gov/" target="_blank" rel="noopener noreferrer" className="btn-secondary">
-            APOD Website
+            🌐 Learn More
           </a>
           <button className="btn-secondary" onClick={onClose}>
-            Back to Gallery
+            ← Back
           </button>
         </div>
       </div>

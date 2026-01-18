@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 
-export default function RecentGallery({ onSelectImage }) {
+export default function RecentGallery({ onSelectImage, isFavorite, onToggleFavorite }) {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [count, setCount] = useState(10)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     fetchRecentImages()
@@ -32,12 +33,23 @@ export default function RecentGallery({ onSelectImage }) {
     }
   }
 
+  const filteredImages = images.filter(image =>
+    image.title.toLowerCase().includes(search.toLowerCase()) ||
+    image.explanation.toLowerCase().includes(search.toLowerCase())
+  )
+
   if (loading) {
     return (
       <div className="recent-gallery">
-        <div className="loading">
-          <div className="spinner"></div>
-          Loading gallery...
+        <div className="gallery-header">
+          <h2>Recent APOD Gallery</h2>
+        </div>
+        <div className="gallery-grid">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton-card" style={{ height: '250px' }}>
+              <div className="skeleton-image" style={{ height: '100%' }}></div>
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -64,32 +76,38 @@ export default function RecentGallery({ onSelectImage }) {
       </div>
 
       {/* Load More Controls */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        justifyContent: 'center',
-        marginBottom: '30px',
-        flexWrap: 'wrap'
-      }}>
-        {[5, 10, 20, 30].map((c) => (
-          <button
-            key={c}
-            className={`nav-btn ${count === c ? 'active' : ''}`}
-            onClick={() => setCount(c)}
-          >
-            Load {c}
-          </button>
-        ))}
+      <div className="gallery-controls">
+        <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search images..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {[5, 10, 20, 30].map((c) => (
+            <button
+              key={c}
+              className={`nav-btn ${count === c ? 'active' : ''}`}
+              onClick={() => setCount(c)}
+              style={{ padding: '10px 16px', fontSize: '0.9em' }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {images.length === 0 ? (
+      {filteredImages.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', opacity: 0.6 }}>
-          <p>No images found</p>
+          <p>{search ? 'No images match your search' : 'No images found'}</p>
         </div>
       ) : (
         <>
           <div className="gallery-grid">
-            {images.map((image, index) => (
+            {filteredImages.map((image, index) => (
               <div
                 key={index}
                 className="gallery-item-card"
@@ -112,8 +130,20 @@ export default function RecentGallery({ onSelectImage }) {
                     🎬
                   </div>
                 )}
-                <div className="gallery-item-title" title={image.title}>
-                  {image.title}
+                <div className="gallery-item-content">
+                  <div className="gallery-item-title" title={image.title}>
+                    {image.title}
+                  </div>
+                  <button 
+                    className="gallery-favorite-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggleFavorite(image)
+                    }}
+                    title={isFavorite(image) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    {isFavorite(image) ? '⭐' : '☆'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -127,7 +157,7 @@ export default function RecentGallery({ onSelectImage }) {
             textAlign: 'center',
             color: 'var(--text-muted)'
           }}>
-            <p>Showing {images.length} images • Click on any image to view details</p>
+            <p>Showing {filteredImages.length} of {images.length} images</p>
           </div>
         </>
       )}

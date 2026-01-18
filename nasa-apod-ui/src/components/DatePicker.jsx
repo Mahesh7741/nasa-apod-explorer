@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function DatePicker({ onSelectImage }) {
+export default function DatePicker({ onSelectImage, isFavorite, onToggleFavorite }) {
   const [selectedDate, setSelectedDate] = useState('')
   const [apod, setApod] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -44,6 +44,31 @@ export default function DatePicker({ onSelectImage }) {
     }
   }
 
+  const downloadImage = async () => {
+    if (!apod || apod.media_type !== 'image') return
+    try {
+      const response = await fetch(apod.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `apod-${apod.date}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Download failed:', err)
+    }
+  }
+
+  const copyToClipboard = () => {
+    if (!apod) return
+    const text = `${apod.title}\n\n${apod.explanation}\n\nDate: ${apod.date}${apod.copyright ? `\nCopyright: ${apod.copyright}` : ''}`
+    navigator.clipboard.writeText(text)
+    alert('✓ Copied to clipboard!')
+  }
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSearch()
@@ -70,7 +95,7 @@ export default function DatePicker({ onSelectImage }) {
           </small>
         </div>
         <button className="btn-search" onClick={handleSearch} disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? 'Searching...' : '🔍 Search'}
         </button>
       </div>
 
@@ -83,9 +108,10 @@ export default function DatePicker({ onSelectImage }) {
 
       {/* Loading State */}
       {loading && (
-        <div className="loading">
-          <div className="spinner"></div>
-          Fetching APOD...
+        <div className="skeleton-card">
+          <div className="skeleton-image"></div>
+          <div className="skeleton-title"></div>
+          <div className="skeleton-text"></div>
         </div>
       )}
 
@@ -106,7 +132,16 @@ export default function DatePicker({ onSelectImage }) {
             </div>
           )}
 
-          <h2 className="apod-title">{apod.title}</h2>
+          <div className="title-section">
+            <h2 className="apod-title">{apod.title}</h2>
+            <button 
+              className="favorite-btn" 
+              onClick={() => onToggleFavorite(apod)}
+              title={isFavorite(apod) ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorite(apod) ? '⭐' : '☆'}
+            </button>
+          </div>
 
           <div className="apod-date">
             <span>📅 {new Date(apod.date).toLocaleDateString('en-US', {
@@ -129,8 +164,16 @@ export default function DatePicker({ onSelectImage }) {
             <a href={apod.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
               View Full Resolution
             </a>
+            {apod.media_type === 'image' && (
+              <button className="btn-secondary" onClick={downloadImage}>
+                📥 Download
+              </button>
+            )}
+            <button className="btn-secondary" onClick={copyToClipboard}>
+              📋 Copy Text
+            </button>
             <button className="btn-secondary" onClick={() => onSelectImage(apod)}>
-              View Details
+              👁️ View Details
             </button>
           </div>
         </div>

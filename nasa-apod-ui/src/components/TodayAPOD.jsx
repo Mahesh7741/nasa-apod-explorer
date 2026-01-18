@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-export default function TodayAPOD() {
+export default function TodayAPOD({ isFavorite, onToggleFavorite }) {
   const [apod, setApod] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -29,12 +29,39 @@ export default function TodayAPOD() {
     }
   }
 
+  const downloadImage = async () => {
+    if (!apod || apod.media_type !== 'image') return
+    try {
+      const response = await fetch(apod.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `apod-${apod.date}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Download failed:', err)
+    }
+  }
+
+  const copyToClipboard = () => {
+    if (!apod) return
+    const text = `${apod.title}\n\n${apod.explanation}\n\nDate: ${apod.date}${apod.copyright ? `\nCopyright: ${apod.copyright}` : ''}`
+    navigator.clipboard.writeText(text)
+    alert('✓ Copied to clipboard!')
+  }
+
   if (loading) {
     return (
       <div className="today-apod">
-        <div className="loading">
-          <div className="spinner"></div>
-          Loading today's APOD...
+        <div className="skeleton-card">
+          <div className="skeleton-image"></div>
+          <div className="skeleton-title"></div>
+          <div className="skeleton-text"></div>
+          <div className="skeleton-text" style={{ width: '70%' }}></div>
         </div>
       </div>
     )
@@ -84,8 +111,17 @@ export default function TodayAPOD() {
           </div>
         )}
 
-        {/* Title */}
-        <h2 className="apod-title">{apod.title}</h2>
+        {/* Title with Favorite Button */}
+        <div className="title-section">
+          <h2 className="apod-title">{apod.title}</h2>
+          <button 
+            className="favorite-btn" 
+            onClick={() => onToggleFavorite(apod)}
+            title={isFavorite(apod) ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite(apod) ? '⭐' : '☆'}
+          </button>
+        </div>
 
         {/* Date and Copyright */}
         <div className="apod-date">
@@ -111,8 +147,16 @@ export default function TodayAPOD() {
           <a href={apod.url} target="_blank" rel="noopener noreferrer" className="btn-primary">
             View Full Resolution
           </a>
+          {apod.media_type === 'image' && (
+            <button className="btn-secondary" onClick={downloadImage}>
+              📥 Download
+            </button>
+          )}
+          <button className="btn-secondary" onClick={copyToClipboard}>
+            📋 Copy Text
+          </button>
           <a href="https://apod.nasa.gov/" target="_blank" rel="noopener noreferrer" className="btn-secondary">
-            APOD Website
+            Learn More
           </a>
         </div>
       </div>
